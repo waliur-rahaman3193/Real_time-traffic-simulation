@@ -1,0 +1,255 @@
+#include <iostream>
+#include <string>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+// Node structure for a linked list
+template <typename T>
+class Node {
+public:
+    T data;
+    Node* next;
+    Node(T value) : data(value), next(nullptr) {}
+};
+
+// Custom queue implementation using a linked list
+template <typename T>
+class CustomQueue {
+private:
+    Node<T>* front;
+    Node<T>* rear;
+
+public:
+    CustomQueue() : front(nullptr), rear(nullptr) {}
+    ~CustomQueue() {
+        while (front != nullptr) {
+            Node<T>* temp = front;
+            front = front->next;
+            delete temp;
+        }
+    }
+
+    void push(T value) {
+        Node<T>* newNode = new Node<T>(value);
+        if (rear == nullptr) {
+            front = rear = newNode;
+        } else {
+            rear->next = newNode;
+            rear = newNode;
+        }
+    }
+
+    void pop() {
+        if (front == nullptr) return;
+        Node<T>* temp = front;
+        front = front->next;
+        if (front == nullptr) rear = nullptr;
+        delete temp;
+    }
+
+    T& peek() {
+        if (front == nullptr) throw runtime_error("Queue is empty");
+        return front->data;
+    }
+
+    bool empty() const {
+        return front == nullptr;
+    }
+
+    int size() const {
+        int count = 0;
+        Node<T>* temp = front;
+        while (temp) {
+            count++;
+            temp = temp->next;
+        }
+        return count;
+    }
+};
+
+// Class to represent a traffic light
+class TrafficLight {
+public:
+    enum State { RED, GREEN, YELLOW };
+    State currentState;
+    int timer;
+
+    TrafficLight() : currentState(RED), timer(10) {}
+
+    void update() {
+        timer--;
+        if (timer <= 0) {
+            switch (currentState) {
+                case RED:
+                    currentState = GREEN;
+                    timer = 10;
+                    break;
+                case GREEN:
+                    currentState = YELLOW;
+                    timer = 3;
+                    break;
+                case YELLOW:
+                    currentState = RED;
+                    timer = 10;
+                    break;
+            }
+            cout << "Traffic light changed to " << getState() << "\n";
+        }
+    }
+
+    void setState(State state, int time) {
+        currentState = state;
+        timer = time;
+    }
+
+    string getState() const {
+        switch (currentState) {
+            case RED: return "RED";
+            case GREEN: return "GREEN";
+            case YELLOW: return "YELLOW";
+        }
+        return "";
+    }
+};
+
+// Class to represent a vehicle
+class Vehicle {
+public:
+    string id;
+    bool isEmergency;
+
+    Vehicle(string id, bool isEmergency = false) : id(id), isEmergency(isEmergency) {}
+};
+
+// Class to represent a pedestrian
+class Pedestrian {
+public:
+    string id;
+    Pedestrian(string id) : id(id) {}
+};
+
+// Class to represent an intersection
+class Intersection {
+public:
+    int id;
+    TrafficLight light;
+    CustomQueue<Vehicle> waitingVehicles;
+    CustomQueue<Pedestrian> waitingPedestrians;
+
+    Intersection(int id) : id(id) {}
+
+    void addVehicle(Vehicle v) {
+        waitingVehicles.push(v);
+    }
+
+    void addPedestrian(Pedestrian p) {
+        waitingPedestrians.push(p);
+    }
+
+    void updateTrafficLight() {
+        light.update();
+    }
+
+    void processVehicles() {
+        while (!waitingVehicles.empty() && (light.currentState == TrafficLight::GREEN || waitingVehicles.peek().isEmergency)) {
+            Vehicle v = waitingVehicles.peek();
+            waitingVehicles.pop();
+            cout << "Vehicle " << v.id << " passed through intersection " << id;
+            if (v.isEmergency) cout << " (Emergency Vehicle)";
+            cout << "\n";
+        }
+    }
+
+    void processPedestrians() {
+        while (!waitingPedestrians.empty() && light.currentState == TrafficLight::RED) {
+            Pedestrian p = waitingPedestrians.peek();
+            waitingPedestrians.pop();
+            cout << "Pedestrian " << p.id << " crossed at intersection " << id << "\n";
+        }
+    }
+};
+
+// Class to represent the simulation engine
+class SimulationEngine {
+private:
+    CustomQueue<Intersection*> intersections;
+    int timeStep;
+
+    Intersection* findIntersection(int id) {
+        CustomQueue<Intersection*> tempQueue;
+        Intersection* found = nullptr;
+        while (!intersections.empty()) {
+            Intersection* intersection = intersections.peek();
+            intersections.pop();
+            tempQueue.push(intersection);
+            if (intersection->id == id) {
+                found = intersection;
+            }
+        }
+        while (!tempQueue.empty()) {
+            intersections.push(tempQueue.peek());
+            tempQueue.pop();
+        }
+        return found;
+    }
+
+public:
+    SimulationEngine() : timeStep(0) {
+        srand(time(0));
+    }
+
+    void addIntersection(int id) {
+        intersections.push(new Intersection(id));
+    }
+
+    void generateTraffic() {
+        CustomQueue<Intersection*> tempQueue;
+        while (!intersections.empty()) {
+            Intersection* intersection = intersections.peek();
+            intersections.pop();
+            int vehicleCount = rand() % 3;
+            int pedestrianCount = rand() % 2;
+            for (int i = 0; i < vehicleCount; i++) {
+                string vehicleId = "V" + to_string(timeStep * 10 + i);
+                bool isEmergency = (rand() % 10 == 0);
+                intersection->addVehicle(Vehicle(vehicleId, isEmergency));
+            }
+            for (int i = 0; i < pedestrianCount; i++) {
+                string pedestrianId = "P" + to_string(timeStep * 10 + i);
+                intersection->addPedestrian(Pedestrian(pedestrianId));
+            }
+            tempQueue.push(intersection);
+        }
+        while (!tempQueue.empty()) {
+            intersections.push(tempQueue.peek());
+            tempQueue.pop();
+        }
+    }
+
+    void displayStatus() {
+        CustomQueue<Intersection*> tempQueue;
+        while (!intersections.empty()) {
+            Intersection* intersection = intersections.peek();
+            intersections.pop();
+            cout << "Intersection " << intersection->id
+                 << " - Light: " << intersection->light.getState()
+                 << " | Vehicles: " << intersection->waitingVehicles.size()
+                 << " | Pedestrians: " << intersection->waitingPedestrians.size() << "\n";
+            tempQueue.push(intersection);
+        }
+        while (!tempQueue.empty()) {
+            intersections.push(tempQueue.peek());
+            tempQueue.pop();
+        }
+    }
+};
+
+int main() {
+    SimulationEngine engine;
+    for (int i = 1; i <= 6; i++) {
+        engine.addIntersection(i);
+    }
+    return 0;
+}
