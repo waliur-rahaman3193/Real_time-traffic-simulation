@@ -14,4 +14,4 @@ A dynamic traffic simulation modeling vehicle movement, intersections, and conge
 ## 🚀 How to Run
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/traffic-simulation.git
+   git clone https://github.com/waliur-rahaman3193/traffic-simulation.git
