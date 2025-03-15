@@ -10,8 +10,3 @@ A dynamic traffic simulation modeling vehicle movement, intersections, and conge
 
 ## 🔧 Technologies Used
 - **Programming Language:** C++ 
-
-## 🚀 How to Run
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/waliur-rahaman3193/traffic-simulation.git
